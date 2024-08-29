@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balloon Popper</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #FFFFFF);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #score, #missed {
+            font-size: 18px;
+            color: #FFFFFF;
+            background-color: #000000;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px;
+        }
+
+        #game-container {
+            position: relative;
+            width: 90%;
+            max-width: 1000px;
+            height: 70%;
+            max-height: 600px;
+            overflow: hidden;
+            border: 2px solid #000;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .balloon {
+            position: absolute;
+            width: 70px;
+            height: 100px;
+            background-image: radial-gradient(circle at 50% 50%, #FF6347, #C8102E);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
+            animation: float 4s ease-in-out infinite, moveUp 6s linear forwards;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .balloon:active {
+            transform: scale(0.9);
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-150px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes moveUp {
+            0% { top: 100%; }
+            100% { top: -100px; }
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: #FFD700;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .airdrop {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #FF4500;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+            animation: drop 5s ease-in-out;
+        }
+
+        @keyframes drop {
+            0% { top: -50px; }
+            100% { top: 100%; }
+        }
+
+        #your-activities {
+            margin-top: 10px;
+            width: 90%;
+            max-width: 1000px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #your-activities h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        #your-activities ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #your-activities li {
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        #your-activities input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        #tasks {
+            margin-top: 10px;
+            width: 90%;
+            max-width: 1000px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #tasks h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        #tasks ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #tasks li {
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        #tasks input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        /* Responsive design adjustments */
+        @media (max-width: 767px) {
+            #score, #missed, #your-activities, #tasks {
+                font-size: 14px;
+                padding: 8px;
+            }
+
+            .balloon {
+                width: 60px;
+                height: 90px;
+            }
+
+            #game-container {
+                height: 80%;
+                max-height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Balloons Popped: 0</div>
+    <div id="missed">Balloons Missed: 0</div>
+    <div id="game-container"></div>
+    <div id="your-activities">
+        <h2>Your Activities</h2>
+        <ul>
+            <li><input type="checkbox" id="task1"> Pop 5 balloons</li>
+            <li><input type="checkbox" id="task2"> Pop 10 balloons</li>
+            <li><input type="checkbox" id="task3"> Pop 15 balloons</li>
+            <li><input type="checkbox" id="task4"> Pop a balloon with a special effect</li>
+            <li><input type="checkbox" id="task5"> Pop an airdrop balloon</li>
+        </ul>
+    </div>
+    <audio id="pop-sound" src="pop-sound.mp3"></audio>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('game-container');
+            const scoreDisplay = document.getElementById('score');
+            const missedDisplay = document.getElementById('missed');
+            const popSound = document.getElementById('pop-sound');
+            let poppedCount = 0;
+            let missedCount = 0;
+            const numberOfBalloons = 10;
+
+            function getRandomPosition() {
+                const x = Math.random() * (container.clientWidth - 70);
+                const y = Math.random() * (container.clientHeight - 100);
+                return { x, y };
+            }
+
+            function createBalloon(isSpecial = false) {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.style.backgroundColor = isSpecial ? '#32CD32' : '#FF6347'; // Different color for special balloons
+                const { x, y } = getRandomPosition();
+                balloon.style.left = `${x}px`;
+                balloon.style.top = `${y}px`;
+
+                balloon.addEventListener('click', () => {
+                    popSound.play();
+                    createParticles(x + 35, y + 50); // Center of the balloon
+                    balloon.remove();
+                    poppedCount++;
+                    scoreDisplay.textContent = `Balloons Popped: ${poppedCount}`;
+
+                    // Update task checkboxes
+                    if (poppedCount >= 5) {
+                        document.getElementById('task1').checked = true;
+                    }
+                    if (poppedCount >= 10) {
+                        document.getElementById('task2').checked = true;
+                    }
+                    if (poppedCount >= 15) {
+                        document.getElementById('task3').checked = true;
+                    }
+                    if (poppedCount === 1) { // For the special effect task
+                        document.getElementById('task4').checked = true;
+                    }
+                    if (isSpecial) { // For the airdrop task
+                        document.getElementById('task5').checked = true;
+                    }
+                });
+
+                // Handle missed balloon
+                balloon.addEventListener('animationend', () => {
+                    if (container.contains(balloon)) {
+                        balloon.remove();
+                        missedCount++;
+                        missedDisplay.textContent = `Balloons Missed: ${missedCount}`;
+                    }
+                });
+
+                container.appendChild(balloon);
+            }
+
+            function createParticles(x, y) {
+                const particleCount = 10;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = `${x}px`;
+                    particle.style.top = `${y}px`;
+                    particle.style.backgroundColor = getRandomColor();
+                    container.appendChild(particle);
+
+                    // Random movement
+                    const angle = Math.random() * 2 * Math.PI;
+                    const speed = Math.random() * 5 + 2;
+                    const dx = Math.cos(angle) * speed;
+                    const dy = Math.sin(angle) * speed;
+
+                    // Animation for particles
+                    particle.animate([
+                        { transform: `translate(${dx}px, ${dy}px)`, opacity: 1 },
+                        { transform: 'translate(0, 0)', opacity: 0 }
+                    ], {
+                        duration: 400,
+                        easing: 'ease-out',
+                        fill: 'forwards'
+                    });
+
+                    // Remove particle after animation
+                    setTimeout(() => particle.remove(), 400);
+                }
+            }
+
+            function getRandomColor() {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+            function dropAirdrop() {
+                const airdrop = document.createElement('div');
+                airdrop.className = 'airdrop';
+                const x = Math.random() * (container.clientWidth - 50);
+                airdrop.style.left = `${x}px`;
+                container.appendChild(airdrop);
+
+                airdrop.addEventListener('click', () => {
+                    // Replace the airdrop with special balloon
+                    airdrop.remove();
+                    createBalloon(true); // Special balloon from airdrop
+                });
+            }
+
+            function startAirdropInterval() {
+                setInterval(() => {
+                    dropAirdrop();
+                }, 15000); // Airdrop every 15 seconds
+            }
+
+            for (let i = 0; i < numberOfBalloons; i++) {
+                createBalloon();
+            }
+
+            startAirdropInterval();
+        });
+    </script>
+</body>
+</html>
